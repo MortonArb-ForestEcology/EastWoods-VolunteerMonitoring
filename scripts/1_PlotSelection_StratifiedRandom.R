@@ -100,6 +100,7 @@ pdf(file.path(path.vols, "MonitoringLists_byYear_Units.pdf"), height=8, width=11
 ggplot(data=dat.woods) +
   facet_wrap(~obs.year) +
   coord_equal() +
-  geom_point(aes(x=lon, y=lat, color=unit.monitoring)) 
+  geom_point(aes(x=lon, y=lat, color=unit.monitoring)) +
+  theme(legend.position="top")
 dev.off()
 # -------------------
