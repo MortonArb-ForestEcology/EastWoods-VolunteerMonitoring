@@ -96,7 +96,21 @@ summary(as.factor(dat.woods$obs.year))
 summary(as.factor(dat.woods$obs.year[dat.woods$unit.monitoring=="Hidden Lake"]))
 
 
-pdf(file.path(path.vols, "MonitoringLists_byYear_Units.pdf"), height=8, width=11)
+# Now randomly assign orders to monitoring units and 
+for(i in 1:n.return){
+  units.now <- unique(dat.woods$unit.monitoring[dat.woods$obs.year==i])
+  units.order <- sample(1:length(units.now), length(units.now), replace = F)
+  
+  for(j in 1:length(units.now)){
+    dat.woods[dat.woods$obs.year==i & dat.woods$unit.monitoring==units.now[j], "Observere.Order"] <- units.order[j]
+  }
+  
+  write.csv(dat.woods[dat.woods$obs.year==i, ], file.path(path.vols, paste0("ObservingList_Year", i, ".csv")), row.names=F)
+}
+
+write.csv(dat.woods, file.path(path.vols, "ObservingList_All.csv"), row.names=F)
+
+pdf(file.path(path.vols, "MonitoringLists_Map_byYear_Units.pdf"), height=8, width=11)
 ggplot(data=dat.woods) +
   facet_wrap(~obs.year) +
   coord_equal() +
