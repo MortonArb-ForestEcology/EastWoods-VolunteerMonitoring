@@ -42,7 +42,7 @@ unique(dat.volsurv$`Canopy Position`)
 unique(dat.volsurv$`Vigor Rating`)
 
 #Reading in the 2018 survey data
-midtree.data <- read.csv("../data/Old EW Survey Data/East Woods Spring vegetation data.final.csv", na.strings="")
+midtree.data <- read.csv("../data/East Woods Spring vegetation data.final.csv", na.strings="")
 
 #Selecting on the plots we have data for
 midtree.data <- midtree.data[midtree.data$Plot.ID.Number %in% unique(dat.volsurv$`Plot ID`), 1:10]
@@ -94,23 +94,32 @@ for(PLOT in unique(dat.volsurv$`Plot ID`)){
 }
 
 #Difference in stem density
-dat.diff$stem.diff <- dat.diff$vol.sum - dat.diff$orig.sum
+dat.diff$stem.diff <- (dat.diff$vol.sum - dat.diff$orig.sum)/dat.diff$orig.sum
 #Difference in Basal area
-dat.diff$BA.diff <- dat.diff$vol.BA - dat.diff$orig.BA
+dat.diff$BA.diff <- (dat.diff$vol.BA - dat.diff$orig.BA)/dat.diff$orig.BA
 #Difference in min tree size
-dat.diff$MIN.diff <- dat.diff$vol.MIN - dat.diff$orig.MIN
+dat.diff$MIN.diff <- (dat.diff$vol.MIN - dat.diff$orig.MIN)/dat.diff$orig.MIN
 #Difference in max tree size
-dat.diff$MAX.diff <- dat.diff$vol.MAX- dat.diff$orig.MAX
+dat.diff$MAX.diff <- (dat.diff$vol.MAX- dat.diff$orig.MAX)/dat.diff$orig.MAX
 
 #--------------------#
 #Histograms to flag extremes
 #--------------------#
+library(ggplot2)
 
-hist(dat.diff$stem.diff)
+ggplot(data=dat.diff)+
+  geom_histogram(aes(x=stem.diff))+
+  xlab("Proportional Difference Number of Individual Trees")
 
-hist(dat.diff$BA.diff)
+ggplot(data=dat.diff)+
+  geom_histogram(aes(x=BA.diff))+
+  xlab("Proportional Difference in Total Basal Area in plot (cm2)")
 
-hist(dat.diff$MIN.diff)
+ggplot(data=dat.diff)+
+  geom_histogram(aes(x=MIN.diff))+
+  xlab("Proportional Difference in minimum tree dbh (cm)")
 
-hist(dat.diff$MAX.diff)
+ggplot(data=dat.diff)+
+  geom_histogram(aes(x=MAX.diff))+
+  xlab("Proportional Difference in maximum tree dbh (cm)")
 
