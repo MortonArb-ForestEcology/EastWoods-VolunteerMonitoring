@@ -141,13 +141,81 @@ save.fig <- function(plot, name, width = 9, height = 6, dpi = 200) {
 }
 
 # ---------------------------------------------------------------------------------------------- #
-# Output paths
+# Output paths -- shared Google Drive folder by default
 # ---------------------------------------------------------------------------------------------- #
-path.raw <- file.path("data", "raw_gsheet")
-path.proc <- file.path("data", "processed")
-path.fig <- "figures"
+# Outputs go to the team's Drive folder so everyone has access:
+#   https://drive.google.com/drive/folders/1Ab8fnpEu5riQCKB1XaKLoITaizHPVOmv
+#   = My Drive / East Woods / East Woods Inventory - Volunteers
+#
+# The folder is located by its Drive ID, not by its path. Google Drive for Desktop stores each item's
+# ID in the "com.google.drivefs.item-id#S" extended attribute, so we can confirm we are writing to
+# the intended shared folder even if someone renames or moves it. Trusting a hardcoded path string
+# would silently write analysis output into the wrong folder.
+DRIVE.FOLDER.ID <- "1Ab8fnpEu5riQCKB1XaKLoITaizHPVOmv"
+OUT.SUBDIR <- "Analysis_Output"   # keeps ~40 generated files out of the team's working folder
 
-for (p in c(path.proc, path.fig)) dir.create(p, showWarnings = FALSE, recursive = TRUE)
+# Read an item's Google Drive ID from the local mount. Returns NA if unavailable.
+drive.item.id <- function(path) {
+  if (!file.exists(path)) return(NA_character_)
+  out <- suppressWarnings(system2("xattr", c("-l", shQuote(path)), stdout = TRUE, stderr = FALSE))
+  # useBytes: the listing also contains com.apple.lastuseddate, whose value is raw bytes that are
+  # not valid in the session encoding and would otherwise raise a translation warning.
+  hit <- grep("com\\.google\\.drivefs\\.item-id", out, value = TRUE, useBytes = TRUE)
+  if (length(hit) == 0) return(NA_character_)
+  trimws(sub("^.*:\\s*", "", hit[1], useBytes = TRUE))
+}
+
+# Candidate locations for the shared folder, most likely first. Add to this list rather than editing
+# code elsewhere if the folder moves or another team member has a different mount name.
+drive.candidates <- function() {
+  cs <- Sys.glob(file.path("~", "Library", "CloudStorage", "GoogleDrive-*", "My Drive",
+                           "East Woods", "East Woods Inventory - Volunteers"))
+  c(path.expand(cs),
+    path.expand("~/Google Drive/My Drive/East Woods/East Woods Inventory - Volunteers"),
+    "/Volumes/GoogleDrive/My Drive/East Woods/East Woods Inventory - Volunteers")
+}
+
+# Resolve the output root. Priority:
+#   1. EASTWOODS_OUT environment variable (explicit override, no ID check)
+#   2. the Drive folder whose ID matches DRIVE.FOLDER.ID
+#   3. the local project directory, with a warning
+resolve.out.root <- function(quiet = FALSE) {
+  ovr <- Sys.getenv("EASTWOODS_OUT")
+  if (nzchar(ovr)) {
+    if (!quiet) message("Output root from EASTWOODS_OUT: ", ovr)
+    return(ovr)
+  }
+  for (cand in drive.candidates()) {
+    if (!dir.exists(cand)) next
+    id <- drive.item.id(cand)
+    if (!is.na(id) && id == DRIVE.FOLDER.ID) {
+      root <- file.path(cand, OUT.SUBDIR)
+      if (!quiet) message("Output root: shared Drive folder (ID verified)\n  ", root)
+      return(root)
+    }
+    if (!quiet) {
+      message("Skipping ", cand, "\n  Drive ID is ", ifelse(is.na(id), "unreadable", id),
+              ", expected ", DRIVE.FOLDER.ID)
+    }
+  }
+  if (!quiet) {
+    warning("Shared Drive folder not found (is Google Drive for Desktop running and synced?).\n",
+            "  Writing to the local project directory instead. Outputs will NOT be shared.\n",
+            "  Override with: export EASTWOODS_OUT=/path/to/folder", call. = FALSE)
+  }
+  "."
+}
+
+OUT.ROOT <- resolve.out.root()
+
+path.raw  <- file.path(OUT.ROOT, "data_raw_snapshots")
+path.proc <- file.path(OUT.ROOT, "data_processed")
+path.fig  <- file.path(OUT.ROOT, "figures")
+path.rep  <- file.path(OUT.ROOT, "reports")
+
+for (p in c(path.raw, path.proc, path.fig, path.rep)) {
+  dir.create(p, showWarnings = FALSE, recursive = TRUE)
+}
 
 # Read the most recent cached snapshot of a given tab
 read.cached <- function(name, path = path.raw) {

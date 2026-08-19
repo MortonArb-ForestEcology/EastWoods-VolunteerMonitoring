@@ -17,15 +17,14 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.align = "left")
 # The working directory is the project root: scripts/7_render_report.R passes knit_root_dir.
-# Do not override it here -- all paths below are relative to the root.
-stopifnot(dir.exists("data/processed"), dir.exists("figures"))
+# Input paths come from the helper, so they follow the outputs into the shared Drive folder.
+source("scripts/0_helper_functions.R")
+stopifnot(dir.exists(path.proc), dir.exists(path.fig))
 ```
 
 ```{r load}
 library(knitr)
-proc <- file.path("data", "processed")
-fig <- "figures"
-rd <- function(f) read.csv(file.path(proc, f), stringsAsFactors = FALSE)
+rd <- function(f) read.csv(file.path(path.proc, f), stringsAsFactors = FALSE)
 
 ps      <- rd("plot_summary.csv")
 stats   <- rd("summary_stats_plots.csv")
@@ -41,9 +40,16 @@ vunit   <- rd("vigor_by_unit.csv")
 
 g <- function(metric, col = "mean") stats[[col]][stats$metric == metric]
 pct <- function(x, d = 0) paste0(formatC(100 * x, format = "f", digits = d), "%")
-# Paths stay relative to the project root. Render via scripts/7_render_report.R, which sets both
-# knit_root_dir and intermediates_dir to the root so that R and pandoc resolve them the same way.
-fig.out <- function(name, cap) knitr::include_graphics(file.path(fig, paste0(name, ".png")))
+# Figures are embedded as base64 data URIs rather than referenced by path. The figure directory now
+# lives in the shared Drive folder, outside the project tree, and pandoc resolves relative resource
+# paths against the intermediate markdown file -- so a path reference would break. Embedding also
+# means the single HTML file is genuinely self-contained and can be moved or emailed as-is.
+fig.out <- function(name, cap = NULL) {
+  f <- file.path(path.fig, paste0(name, ".png"))
+  if (!file.exists(f)) stop("missing figure: ", f)
+  knitr::asis_output(sprintf('<img src="%s" alt="%s" style="max-width:100%%;height:auto;">',
+                             xfun::base64_uri(f), if (is.null(cap)) name else cap))
+}
 ```
 
 <style>
@@ -67,7 +73,7 @@ summarizes what those data say about four questions:
 4. How many oak seedlings are there, and how has the oak share of regeneration changed?
 
 All numbers come from the scripts in `scripts/`, run in order. Every correction made to the raw
-spreadsheets is logged in `data/processed/qaqc_flags.csv` and summarized in the appendix.
+spreadsheets is logged in `data_processed/qaqc_flags.csv` in the shared Drive folder and summarized in the appendix.
 
 <div class="callout">
 **Three findings worth knowing before reading any figure.**
@@ -471,7 +477,7 @@ kable(v, row.names = FALSE)
 # Appendix: data quality
 
 `r nrow(flags)` items were flagged during cleaning. Nothing was silently dropped; the full log with
-plot and tag numbers is in `data/processed/qaqc_flags.csv`.
+plot and tag numbers is in `data_processed/qaqc_flags.csv` in the shared Drive folder.
 
 ```{r flag-table}
 ft <- as.data.frame(table(Dataset = flags$dataset, Issue = flags$issue))
@@ -504,7 +510,7 @@ mm$se <- signif(mm$se, 3); mm$statistic <- signif(mm$statistic, 3); mm$p_value <
 for (cc in c("estimate", "se", "statistic", "p_value")) {
   mm[[cc]] <- ifelse(is.na(mm[[cc]]), "", format(mm[[cc]], trim = TRUE))
 }
-kable(mm, row.names = FALSE, caption = "All fitted models and tests. Also in data/processed/model_summaries*.csv.")
+kable(mm, row.names = FALSE, caption = "All fitted models and tests. Also in data_processed/model_summaries*.csv.")
 ```
 
 ## Reproducing this report
@@ -521,6 +527,6 @@ Rscript scripts/7_render_report.R      # knits this report
 ```
 
 Run from the project root. Script 0 needs a Google account with access to both sheets; everything
-after it works offline from the dated snapshots in `data/raw_gsheet/`. Use
+after it works offline from the dated snapshots in `data_raw_snapshots/`. Use
 `scripts/7_render_report.R` rather than calling `rmarkdown::render` directly -- it sets the working
 directory and pandoc path that the relative figure paths depend on.

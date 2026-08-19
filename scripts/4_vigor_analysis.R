@@ -2,9 +2,9 @@
 #          current volunteer resurvey. Also quantifies the observer effect, which is large enough
 #          here to govern how the temporal result can be read.
 # Author: Christy Rollinson, Forest Ecologist (crollinson@mortonarb.org)
-# Inputs:  data/processed/tree_survey_clean.csv, veg2018_clean.csv, plot_summary.csv
-# Outputs: figures/fig09..fig13*.png, data/processed/model_summaries.csv,
-#          data/processed/vigor_paired_2018.csv
+# Inputs:  <out>/data_processed/tree_survey_clean.csv, veg2018_clean.csv, plot_summary.csv
+# Outputs: <out>/figures/fig09..fig13*.png, <out>/data_processed/model_summaries.csv,
+#          <out>/data_processed/vigor_paired_2018.csv
 
 source("scripts/0_helper_functions.R")
 suppressPackageStartupMessages({library(lme4); library(emmeans); library(scales); library(MASS)})

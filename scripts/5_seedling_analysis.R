@@ -2,9 +2,9 @@
 #          Because a different subset of plots was visited each year, year-to-year differences are
 #          reported both at the landscape scale and on the plots that genuinely repeat.
 # Author: Christy Rollinson, Forest Ecologist (crollinson@mortonarb.org)
-# Inputs:  data/processed/seedlings_clean.csv
-# Outputs: figures/fig14..fig18*.png, data/processed/seedling_plot_summary.csv,
-#          data/processed/summary_stats_seedlings.csv, model_summaries_seedlings.csv
+# Inputs:  <out>/data_processed/seedlings_clean.csv
+# Outputs: <out>/figures/fig14..fig18*.png, <out>/data_processed/seedling_plot_summary.csv,
+#          <out>/data_processed/summary_stats_seedlings.csv, model_summaries_seedlings.csv
 
 source("scripts/0_helper_functions.R")
 suppressPackageStartupMessages({library(scales); library(MASS)})

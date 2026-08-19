@@ -11,11 +11,11 @@ library(googlesheets4)
 # ---------------------------------------------------------------------------------------------- #
 # Setup
 # ---------------------------------------------------------------------------------------------- #
+# Sourced for path.raw, which resolves to the shared Drive folder (see 0_helper_functions.R)
+source("scripts/0_helper_functions.R")
+
 # Uses the cached OAuth token so this runs non-interactively
 gs4_auth(email = "crollinson@mortonarb.org")
-
-path.raw <- file.path("data", "raw_gsheet")
-dir.create(path.raw, showWarnings = FALSE, recursive = TRUE)
 
 id.trees <- "161i75Il4W3u8oJ6yMpY9fMfudHCNlamcD89SLj0u-hY"
 id.seedlings <- "1Q8JuUhpimc8POr1Ez9ERwrLmoGfaT0Ez5_w9u0QfUU4"

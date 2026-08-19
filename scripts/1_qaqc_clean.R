@@ -1,11 +1,11 @@
 # Purpose: QA/QC and cleaning for the volunteer tree survey and oak seedling data. Every correction
-#          is logged to data/processed/qaqc_flags.csv so nothing is silently changed or dropped.
+#          is logged to <out>/data_processed/qaqc_flags.csv so nothing is silently changed or dropped.
 # Author: Christy Rollinson, Forest Ecologist (crollinson@mortonarb.org)
-# Inputs:  data/raw_gsheet/*.csv (from 0_data_download.R)
-# Outputs: data/processed/tree_survey_clean.csv  -- one row per live/dead stem, analysis-ready
-#          data/processed/plot_status.csv        -- survey status of every plot-year
-#          data/processed/seedlings_clean.csv    -- one row per plot-year-species
-#          data/processed/qaqc_flags.csv         -- every flag raised, for team review
+# Inputs:  <out>/data_raw_snapshots/*.csv (from 0_data_download.R)
+# Outputs: <out>/data_processed/tree_survey_clean.csv  -- one row per live/dead stem, analysis-ready
+#          <out>/data_processed/plot_status.csv        -- survey status of every plot-year
+#          <out>/data_processed/seedlings_clean.csv    -- one row per plot-year-species
+#          <out>/data_processed/qaqc_flags.csv         -- every flag raised, for team review
 # Notes:   Extends the eye-test checks in Volunteer_survery_qaqc.R (species/canopy/vigor scans, DBH
 #          range) into explicit, logged corrections. That script read a `Survey Date` column; the
 #          sheet column is now `Date`.
@@ -409,4 +409,4 @@ write.csv(flags, file.path(path.proc, "qaqc_flags.csv"), row.names = FALSE)
 cat("\n=== QA/QC FLAGS ===\n")
 print(as.data.frame(table(dataset = flags$dataset, issue = flags$issue))[
   as.data.frame(table(dataset = flags$dataset, issue = flags$issue))$Freq > 0, ])
-cat("\nTotal flags logged:", nrow(flags), "-> data/processed/qaqc_flags.csv\n")
+cat("\nTotal flags logged:", nrow(flags), "-> <out>/data_processed/qaqc_flags.csv\n")

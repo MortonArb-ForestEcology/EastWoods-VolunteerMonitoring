@@ -22,14 +22,16 @@ if (!nzchar(Sys.getenv("RSTUDIO_PANDOC")) && !rmarkdown::pandoc_available()) {
 }
 
 root <- normalizePath(".")
-dir.create("reports", showWarnings = FALSE)
+
+# path.rep resolves to the shared Drive folder; see 0_helper_functions.R
+source("scripts/0_helper_functions.R")
 
 out <- rmarkdown::render(
   input = file.path("scripts", "6_report.Rmd"),
   output_file = "EastWoods_VolunteerMonitoring_Summary.html",
-  output_dir = file.path(root, "reports"),
+  output_dir = normalizePath(path.rep),
   knit_root_dir = root,
-  intermediates_dir = root,
+  intermediates_dir = root,   # pandoc resolves resource paths from here
   envir = new.env(),
   quiet = TRUE)
 

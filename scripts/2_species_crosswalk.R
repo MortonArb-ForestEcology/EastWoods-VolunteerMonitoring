@@ -3,8 +3,8 @@
 #          current data. Also produces a full species lookup, since the sheet's own species metadata
 #          tab has only 10 codes.
 # Author: Christy Rollinson, Forest Ecologist (crollinson@mortonarb.org)
-# Inputs:  data/East Woods Spring vegetation data.final.csv, data/raw_gsheet/*.csv
-# Outputs: data/processed/species_crosswalk.csv, data/processed/veg2018_clean.csv
+# Inputs:  data/East Woods Spring vegetation data.final.csv, <out>/data_raw_snapshots/*.csv
+# Outputs: <out>/data_processed/species_crosswalk.csv, <out>/data_processed/veg2018_clean.csv
 
 source("scripts/0_helper_functions.R")
 

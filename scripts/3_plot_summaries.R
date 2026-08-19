@@ -1,8 +1,8 @@
 # Purpose: Build the plot-level summary table -- basal area, oak dominance, structure, and oak vigor
 #          for every surveyed plot -- and the descriptive statistics that go with it.
 # Author: Christy Rollinson, Forest Ecologist (crollinson@mortonarb.org)
-# Inputs:  data/processed/tree_survey_clean.csv, plot_status.csv
-# Outputs: data/processed/plot_summary.csv, data/processed/summary_stats_plots.csv
+# Inputs:  <out>/data_processed/tree_survey_clean.csv, plot_status.csv
+# Outputs: <out>/data_processed/plot_summary.csv, <out>/data_processed/summary_stats_plots.csv
 
 source("scripts/0_helper_functions.R")
 

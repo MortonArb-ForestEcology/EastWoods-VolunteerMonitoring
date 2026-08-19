@@ -1,7 +1,7 @@
 # Purpose: Figures for basal area, stand structure, and oak dominance.
 # Author: Christy Rollinson, Forest Ecologist (crollinson@mortonarb.org)
-# Inputs:  data/processed/plot_summary.csv, tree_survey_clean.csv, summary_stats_species.csv
-# Outputs: figures/fig01..fig08*.png
+# Inputs:  <out>/data_processed/plot_summary.csv, tree_survey_clean.csv, summary_stats_species.csv
+# Outputs: <out>/figures/fig01..fig08*.png
 
 source("scripts/0_helper_functions.R")
 library(scales)

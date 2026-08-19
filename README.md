@@ -31,10 +31,35 @@ Rscript scripts/7_render_report.R      # knit reports/EastWoods_VolunteerMonitor
 ```
 
 `scripts/0_helper_functions.R` holds the plot-design constants (0.025 ha, 8.92 m radius, 10 cm DBH
-cutoff), the basal area functions, and the shared figure theme and palette. Sourced by the others.
+cutoff), the basal area functions, the shared figure theme and palette, and the output paths.
+Sourced by the others.
 
-Outputs: `data/raw_gsheet/` (dated raw snapshots), `data/processed/` (clean data, summary tables,
-model output, QA/QC log), `figures/`, `reports/`.
+### Where the outputs go
+
+Everything is written to the team's shared Google Drive folder so the whole group has access:
+
+**[East Woods Inventory - Volunteers / Analysis_Output](https://drive.google.com/drive/folders/1Ab8fnpEu5riQCKB1XaKLoITaizHPVOmv)**
+
+```
+Analysis_Output/
+  data_raw_snapshots/   dated CSV snapshots of every Google Sheet tab
+  data_processed/       cleaned data, summary tables, model output, QA/QC log
+  figures/              20 figures
+  reports/              EastWoods_VolunteerMonitoring_Summary.html
+```
+
+This needs Google Drive for Desktop running and synced. The folder is located by its **Drive folder
+ID**, not by its path, so renaming or moving it will not silently send output somewhere else — the
+scripts read the ID from the `com.google.drivefs.item-id` extended attribute and check it matches.
+
+- If Drive is not available the scripts fall back to writing into the project directory and print a
+  warning saying the outputs are not shared.
+- To write somewhere else, set `EASTWOODS_OUT`, e.g.
+  `export EASTWOODS_OUT=~/Desktop/ew_test` before running.
+- Generated outputs are gitignored; the repo holds the code and the 2018 source CSV only.
+
+Note that Google Drive will offer to *download* the HTML report rather than rendering it in the
+browser. To read it in place, open it with the Drive HTML preview, or download and open locally.
 
 **Read the report's data-quality appendix before quoting numbers.** Three things in particular:
 oak vigor is not comparable across survey years because crew and year are confounded and crews
