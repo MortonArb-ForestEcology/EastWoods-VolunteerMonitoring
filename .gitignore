@@ -47,3 +47,9 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# Folders that should end up on Github
+data/
+figures/
+reports/
+

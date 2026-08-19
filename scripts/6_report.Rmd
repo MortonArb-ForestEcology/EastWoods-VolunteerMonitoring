@@ -1,0 +1,526 @@
+---
+title: "East Woods Volunteer Monitoring: Tree and Oak Regeneration Summary"
+subtitle: "Tree survey 2022, 2025, 2026 (in progress) | Oak seedling inventory 2023-2025"
+author: "Prepared by Christy Rollinson, Forest Ecologist (crollinson@mortonarb.org)"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float:
+      collapsed: false
+    theme: flatly
+    df_print: kable
+    self_contained: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.align = "left")
+# The working directory is the project root: scripts/7_render_report.R passes knit_root_dir.
+# Do not override it here -- all paths below are relative to the root.
+stopifnot(dir.exists("data/processed"), dir.exists("figures"))
+```
+
+```{r load}
+library(knitr)
+proc <- file.path("data", "processed")
+fig <- "figures"
+rd <- function(f) read.csv(file.path(proc, f), stringsAsFactors = FALSE)
+
+ps      <- rd("plot_summary.csv")
+stats   <- rd("summary_stats_plots.csv")
+by.unit <- rd("summary_stats_by_unit.csv")
+spp     <- rd("summary_stats_species.csv")
+flags   <- rd("qaqc_flags.csv")
+mods    <- rd("model_summaries.csv")
+smods   <- rd("model_summaries_seedlings.csv")
+seedyr  <- rd("summary_stats_seedlings.csv")
+paired  <- rd("vigor_paired_2018.csv")
+spaired <- rd("seedling_paired.csv")
+vunit   <- rd("vigor_by_unit.csv")
+
+g <- function(metric, col = "mean") stats[[col]][stats$metric == metric]
+pct <- function(x, d = 0) paste0(formatC(100 * x, format = "f", digits = d), "%")
+# Paths stay relative to the project root. Render via scripts/7_render_report.R, which sets both
+# knit_root_dir and intermediates_dir to the root so that R and pandoc resolve them the same way.
+fig.out <- function(name, cap) knitr::include_graphics(file.path(fig, paste0(name, ".png")))
+```
+
+<style>
+body { background: #fff; }
+.main-container { max-width: 1100px; }
+img { max-width: 100%; height: auto; }
+.callout { border-left: 4px solid #2a78d6; background: #f5f8fd; padding: 0.8em 1.1em; margin: 1.2em 0; }
+.warn { border-left: 4px solid #eb6834; background: #fdf6f2; padding: 0.8em 1.1em; margin: 1.2em 0; }
+table { font-size: 0.92em; }
+</style>
+
+# What this covers
+
+Volunteers have now completed three field seasons of tree inventory (2022, 2025, and 2026 in
+progress) and three years of oak seedling inventory (2023-2025) in the East Woods. This report
+summarizes what those data say about four questions:
+
+1. How much basal area does each plot carry?
+2. What proportion of each plot is oak?
+3. How is oak vigor distributed across space, and has it changed since the 2018 IES survey?
+4. How many oak seedlings are there, and how has the oak share of regeneration changed?
+
+All numbers come from the scripts in `scripts/`, run in order. Every correction made to the raw
+spreadsheets is logged in `data/processed/qaqc_flags.csv` and summarized in the appendix.
+
+<div class="callout">
+**Three findings worth knowing before reading any figure.**
+
+1. **The oak share of a plot roughly doubles depending on how you measure it.**
+   Oak is `r pct(g("Oak share of live basal area"))` of basal area but only
+   `r pct(g("Oak share of live stems"))` of stems, because the oaks are the big trees and
+   everything else fills the small size classes.
+
+2. **The apparent improvement in oak vigor since 2018 cannot be separated from a change in
+   observers.** Crews differ severalfold in how often they rate an oak as reduced vigor, and the
+   crew that rates most stringently shows no significant change. Treat the 2018 comparison as
+   inconclusive.
+
+3. **Oak seedlings rose sharply after 2023**, and the rise holds on the plots that genuinely
+   repeat -- but the survey moved two months earlier in the season between 2023 and 2024, which
+   could produce part of the same pattern.
+</div>
+
+# Survey design and what it does and does not support
+
+```{r design}
+d1 <- data.frame(
+  Dataset = c("Tree survey", "Oak seedling inventory"),
+  Years = c("2022, 2025, 2026", "2023, 2024, 2025"),
+  Plots = c(paste(nrow(ps), "plot-years"), paste(sum(seedyr$plots), "plot-years")),
+  `Plots repeated` = c("none (by design: 5-year rotation)",
+                       "29 plots 2023-24, 12 plots 2023-25, none 2024-25"),
+  check.names = FALSE)
+kable(d1, caption = "Both datasets are rotating panels: a different set of plots each year.")
+```
+
+Plots are 0.025 ha (8.92 m radius) with a 10 cm DBH cutoff. Basal area is
+`sum(pi * (DBH/2)^2) / 0.025`, expressed in m<sup>2</sup> ha<sup>-1</sup>.
+
+<div class="warn">
+**The rotating design means year is confounded with location.** Because a different part of the
+woods is visited each year, a raw year-to-year difference mixes real change with the difference
+between the plots visited. Wherever this report compares years, it also reports the comparison
+restricted to plots that genuinely repeat, and says which one to trust.
+
+Note also that the previous QA/QC script computed basal area as `DBH^2 * 0.005454`, the imperial
+ft<sup>2</sup>/acre constant applied to centimeters. Relative comparisons from it were fine, but the
+absolute numbers were not m<sup>2</sup> ha<sup>-1</sup>. The values in this report use the metric form.
+</div>
+
+# 1. Basal area
+
+```{r ba-stats}
+show <- c("Live basal area", "Snag basal area", "Total basal area (live + snag)",
+          "Live stem density", "Snag density", "Quadratic mean diameter", "Largest live stem",
+          "Species richness")
+t1 <- stats[stats$metric %in% show, c("metric", "unit", "n", "mean", "sd", "median", "q25", "q75", "min", "max")]
+t1[, 4:10] <- round(t1[, 4:10], 1)
+kable(t1, row.names = FALSE, caption = "Plot-level structure. n is plot-years.")
+```
+
+Mean live basal area is **`r round(g("Live basal area"), 1)` m<sup>2</sup> ha<sup>-1</sup>**
+(median `r round(g("Live basal area", "median"), 1)`), which is what a mature, closed
+oak-maple forest should carry. The spread is wide -- the interquartile range alone runs
+`r round(g("Live basal area", "q25"), 1)` to `r round(g("Live basal area", "q75"), 1)` -- and one
+plot (E-109) was surveyed with no trees at all above the cutoff, which is recorded as a true zero
+rather than as missing data.
+
+Standing dead wood is a minor component: snags are `r pct(g("Snag share of total basal area"), 1)`
+of total basal area on average and absent entirely from most plots.
+
+```{r fig01, fig.cap="Distribution of live basal area across plots."}
+fig.out("fig01_basalarea_distribution")
+```
+
+```{r fig02, fig.cap="Live basal area in space."}
+fig.out("fig02_basalarea_map")
+```
+
+```{r fig03, fig.cap="Live basal area by management unit."}
+fig.out("fig03_basalarea_by_unit")
+```
+
+The between-unit differences are real but modest next to the plot-to-plot spread within units, and
+several units rest on only 2-5 plots. Read the unit ranking as provisional.
+
+# 2. Oak share of each plot
+
+```{r oak-stats}
+# The two landscape rows are single pooled values with no distribution, so they get their own table
+# rather than six empty columns in the per-plot one.
+is.land <- grepl("landscape", stats$metric)
+t2 <- stats[grepl("^Oak share", stats$metric) & !is.land,
+            c("metric", "n", "mean", "sd", "median", "q25", "q75", "min", "max")]
+t2[, 3:9] <- round(t2[, 3:9], 3)
+kable(t2, row.names = FALSE,
+      caption = "Oak share per plot, averaged across plots. n is plot-years with any live tree.")
+
+t2b <- stats[is.land, c("metric", "n", "mean")]
+t2b$mean <- round(t2b$mean, 3)
+names(t2b) <- c("metric", "plot-years", "value")
+kable(t2b, row.names = FALSE,
+      caption = "Oak share pooled across the whole sample. This is the share of the forest that is oak, rather than what a typical plot looks like.")
+```
+
+This is the number most sensitive to how it is defined:
+
+- **Oak share of basal area**, averaged over plots: `r pct(g("Oak share of live basal area"))`
+- **Oak share of stems**, averaged over plots: `r pct(g("Oak share of live stems"))`
+- **Oak share of basal area across the whole sample** (basal-area weighted):
+  `r pct(g("Oak share of live basal area (landscape, BA-weighted)"))`
+
+The gap between the first two is the substantive result: oak dominates the canopy without dominating
+the stem count. The gap between the first and third says the same thing at landscape scale -- plots
+with a lot of basal area tend to be the oak-rich ones, so weighting by basal area raises the oak share.
+
+```{r fig06, fig.cap="Oak share by basal area and by stem count, same plots."}
+fig.out("fig06_oak_share_distribution")
+```
+
+```{r fig05, fig.cap="Size distribution of oak versus everything else."}
+fig.out("fig05_dbh_distribution")
+```
+
+```{r fig08, fig.cap="Oak share of basal area against oak share of stems, per plot."}
+fig.out("fig08_oak_ba_vs_stems")
+```
+
+```{r fig07, fig.cap="Oak share of basal area in space."}
+fig.out("fig07_oak_share_map")
+```
+
+```{r fig04, fig.cap="Species composition of basal area by management unit."}
+fig.out("fig04_species_composition")
+```
+
+```{r spp-table}
+t3 <- head(spp[, c("SppCode", "SppName", "IsOak", "n_stems", "pct_stems", "BA_m2ha", "pct_BA", "n_plots", "DBH_mean")], 12)
+t3$BA_m2ha <- round(t3$BA_m2ha, 2)
+kable(t3, row.names = FALSE,
+      caption = "Twelve most abundant species by basal area, live stems, all years pooled. BA_m2ha is per hectare of total area sampled.")
+```
+
+Note that `ACSA` pools *Acer saccharum* and *A. saccharinum*: the volunteer 4-letter code cannot
+separate them, and the 2018 data show both present (703 and 18 stems respectively). Sugar maple is
+almost certainly the bulk of it, but the code cannot prove that.
+
+```{r unit-table}
+kable(by.unit, row.names = FALSE,
+      caption = "Basal area and oak share by management unit, ordered by oak share of basal area.")
+```
+
+# 3. Oak vigor
+
+Vigor is rated 1-3 on live trees only (1 = under 5% dieback; 3 = fewer than 20% of leaves
+undamaged). Snags carry no vigor rating and are excluded throughout; 18 snags had been given a
+rating of 3, which would have biased the distribution had they been left in.
+
+```{r vigor-summary}
+nv <- g("Oak stems with vigor >= 2", "n")
+t4 <- stats[grepl("vigor", stats$metric), c("metric", "n", "mean", "sd", "median", "min", "max")]
+t4[, 3:7] <- round(t4[, 3:7], 3)
+kable(t4, row.names = FALSE, caption = "Oak vigor, summarized across plots with at least one rated oak.")
+```
+
+Across `r sum(ps$n_oak_vigor)` rated live oak stems, mean vigor is
+`r round(g("Mean oak vigor (1 best - 3 worst)"), 2)` and
+`r pct(g("Oak stems with vigor >= 2"), 1)` of stems are rated 2 or 3. **Most oaks in the East Woods
+are in the healthiest vigor class.**
+
+## Across space
+
+```{r fig09, fig.cap="Vigor class composition by management unit."}
+fig.out("fig09_vigor_by_unit")
+```
+
+```{r fig10, fig.cap="Proportion of oaks rated reduced vigor, in space."}
+fig.out("fig10_vigor_map")
+```
+
+```{r fig11, fig.cap="Reduced vigor against stem size."}
+fig.out("fig11_vigor_by_dbh")
+```
+
+A mixed model of P(vigor >= 2) with plot and monitoring unit as random effects and crew and DBH as
+fixed effects puts the **between-unit variance at exactly zero**. Once plot-to-plot variation and
+the difference between crews are accounted for, there is no detectable between-unit signal left.
+The unit ranking in the figure above is not distinguishable from noise. Stem size is likewise not a
+significant predictor (p = `r signif(mods$p_value[mods$term == "scale(DBH)" & grepl("space", mods$model)][1], 2)`).
+
+## The observer problem
+
+<div class="warn">
+**Crew lead is confounded with survey year.** JG and TO surveyed only 2022; GA surveyed 2025 and
+2026. No crew spans the 2022/2025 boundary, so for that contrast "year effect" and "observer
+effect" are the same thing and no model can separate them.
+</div>
+
+```{r crew-table}
+# "^crew [A-Z]" and not just "^crew ": the latter also caught the chi-squared row, whose estimate is
+# empty by design, putting a stray NA in the table.
+ct <- mods[grepl("^crew [A-Z]", mods$term) & mods$model == "Observer effect",
+           c("term", "estimate", "note")]
+ct$estimate <- round(ct$estimate, 3)
+names(ct) <- c("Crew (year)", "Proportion rated vigor >= 2", "Detail")
+kable(ct, row.names = FALSE, caption = "How often each crew rated an oak as reduced vigor.")
+```
+
+```{r fig12, fig.cap="Between-crew differences in vigor rating."}
+fig.out("fig12_observer_effect")
+```
+
+## Change since 2018
+
+The 2018 IES survey used the same 1-3 vigor scale, so it provides the baseline. `r nrow(paired)`
+plots have rated oaks in both eras. Because 2018 recorded no tree tags, this compares each plot's
+oak *population* between eras rather than tracking the same individual stems.
+
+```{r era-table}
+et <- data.frame(
+  Measure = c("Mean oak vigor (1-3)", "Share of oaks rated vigor 2 or 3"),
+  `2018` = c(round(mean(paired$vigor_2018), 3), pct(mean(paired$poor_2018), 1)),
+  Resurvey = c(round(mean(paired$vigor_now), 3), pct(mean(paired$poor_now), 1)),
+  Change = c(round(mean(paired$d_vigor), 3), paste0(round(100 * mean(paired$d_poor), 1), " pts")),
+  `Paired Wilcoxon p` = signif(mods$p_value[mods$model == "2018 vs resurvey (paired Wilcoxon)"], 3),
+  check.names = FALSE)
+kable(et, row.names = FALSE, caption = paste0("2018 versus resurvey on the ", nrow(paired), " paired plots."))
+```
+
+Taken at face value, oak vigor improved: the share of oaks rated 2 or 3 fell from
+`r pct(mean(paired$poor_2018), 1)` to `r pct(mean(paired$poor_now), 1)`, and both the paired
+Wilcoxon tests and a stem-level mixed model agree (p < 0.01).
+
+```{r fig13a, fig.cap="2018 versus resurvey, by management unit."}
+fig.out("fig13a_vigor_2018_dumbbell")
+```
+
+```{r fig13b, fig.cap="Per-plot change from 2018 to resurvey."}
+fig.out("fig13b_vigor_change_map")
+```
+
+**But splitting the same comparison by which crew did the resurvey undoes it.**
+
+```{r crew-era-table}
+ce <- mods[mods$model == "2018 vs resurvey, by resurvey crew", c("term", "estimate", "p_value", "note")]
+ce$estimate <- paste0(round(100 * ce$estimate, 1), " pts")
+ce$p_value <- signif(ce$p_value, 3)
+names(ce) <- c("Resurvey crew", "Change in share rated 2-3", "p", "Detail")
+kable(ce, row.names = FALSE, caption = "The same 2018-to-now comparison, split by resurvey crew.")
+```
+
+```{r fig13c, fig.cap="The 2018-to-now change, split by resurvey crew."}
+fig.out("fig13c_vigor_change_by_crew")
+```
+
+Nearly all the apparent improvement comes from the 2022 crews, who rated under 2% of oaks as
+reduced vigor -- an implausibly low rate. The crew rating most stringently (GA, 69 of the 104 paired
+plots) shows a change of only -7 points that is not statistically significant.
+
+<div class="warn">
+**Conclusion on vigor through time: inconclusive.** The between-crew spread is as large as the
+2018-to-now difference, and the signal disappears in the subset with the most consistent observer.
+This is a measurement problem, not a small-sample problem, and more plots will not fix it. See the
+recommendations below.
+</div>
+
+# 4. Oak seedlings and saplings
+
+```{r seed-table}
+st <- seedyr[, c("Year", "plots", "oak_c1_total", "all_c1_total", "oak_per_plot",
+                 "prop_oak_pooled", "pct_plots_with_oak")]
+st$oak_per_plot <- round(st$oak_per_plot, 2)
+st$prop_oak_pooled <- pct(st$prop_oak_pooled, 1)
+st$pct_plots_with_oak <- pct(st$pct_plots_with_oak, 1)
+names(st) <- c("Year", "Plots", "Oak seedlings", "All seedlings", "Oak per plot",
+               "Oak share", "Plots with any oak")
+kable(st, row.names = FALSE, caption = "Class 1 seedlings (<1.37 m), the only size class recorded consistently in all three years.")
+```
+
+Oak seedling numbers rose sharply: **`r seedyr$oak_c1_total[1]` in 2023, `r seedyr$oak_c1_total[2]`
+in 2024, `r seedyr$oak_c1_total[3]` in 2025**, and the oak share of the seedling layer went from
+`r pct(seedyr$prop_oak_pooled[1], 1)` to about `r pct(seedyr$prop_oak_pooled[3], 0)`. The share of
+plots holding at least one oak seedling also rose steadily, from
+`r pct(seedyr$pct_plots_with_oak[1], 1)` to `r pct(seedyr$pct_plots_with_oak[3], 1)`.
+
+```{r fig14, fig.cap="Oak seedling abundance by year."}
+fig.out("fig14_oak_seedling_abundance")
+```
+
+```{r fig15, fig.cap="Oak share of the Class 1 seedling layer."}
+fig.out("fig15_oak_seedling_share")
+```
+
+Two things make the *share* move more than oak alone does. Sugar maple collapsed from 988 seedlings
+in 2023 to 324 in 2024, and the total count fell from 1,280 to 340 over the three years. So the
+rising oak share reflects both more oak and much less of everything else.
+
+```{r fig16, fig.cap="Composition of the seedling layer."}
+fig.out("fig16_seedling_composition")
+```
+
+## Does the increase survive the design problem?
+
+```{r seed-paired}
+sp <- spaired
+sp$oak_from <- round(sp$oak_from, 2); sp$oak_to <- round(sp$oak_to, 2)
+sp$occ_from <- pct(sp$occ_from, 1); sp$occ_to <- pct(sp$occ_to, 1)
+sp$p <- signif(sp$p, 3)
+names(sp) <- c("From", "To", "Shared plots", "Oak per plot (from)", "Oak per plot (to)",
+               "Plots with oak (from)", "Plots with oak (to)", "Paired Wilcoxon p")
+kable(sp, row.names = FALSE, caption = "Restricted to plots surveyed in both years of each pair.")
+```
+
+Yes, partly. On the 29 plots surveyed in both 2023 and 2024, mean oak seedlings per plot went from
+`r round(spaired$oak_from[spaired$from == 2023 & spaired$to == 2024], 2)` to
+`r round(spaired$oak_to[spaired$from == 2023 & spaired$to == 2024], 2)`
+(p = `r signif(spaired$p[spaired$from == 2023 & spaired$to == 2024], 2)`). The 2023-2025 pair points
+the same way but has only 12 plots and is not significant. 2024 and 2025 share no plots at all, so
+that step cannot be checked.
+
+A negative binomial model of oak counts with monitoring unit held constant gives the same answer
+(2024 vs 2023: p = `r signif(smods$p_value[smods$term == "YearF2024"][1], 2)`), as does the
+occupancy test (p = `r signif(smods$p_value[grepl("occupancy", smods$model)][1], 3)`), which is
+insensitive to a few plots carrying very large counts.
+
+```{r fig17, fig.cap="Paired-plot change in oak seedlings."}
+fig.out("fig17_seedling_paired_change")
+```
+
+```{r fig18, fig.cap="Oak seedlings by year and location."}
+fig.out("fig18_oak_seedling_map")
+```
+
+<div class="warn">
+**Two caveats on the seedling trend.**
+
+1. **Season.** 2023 was surveyed late September to October, 2024 in July and August. First-year oak
+seedlings emerge in spring and can be browsed or drop leaves by autumn, so a late survey may simply
+count fewer of them. This alone could produce part of the 2023-to-2024 jump.
+
+2. **Size classes.** Only 26 of 183 species records in 2023 have any Class 2 or 3 entry, against
+near-complete recording in 2024 and 2025. Either the larger classes were not recorded in 2023 or the
+sapling layer genuinely changed. **This needs confirming before Class 2-3 numbers are compared
+across years**; everything above deliberately uses Class 1 only.
+</div>
+
+Also worth flagging for management: invasive shrubs (*Lonicera*, *Rhamnus*, *Rosa multiflora*,
+*Euonymus*) were 5%, 10%, and 2% of Class 1 seedlings across the three years -- a smaller share than
+oak in 2024-25, but a persistent presence in the regeneration layer.
+
+# What we can and cannot say
+
+```{r verdicts}
+v <- data.frame(
+  Question = c("Basal area per plot",
+               "Oak proportion per plot",
+               "Oak vigor across space",
+               "Oak vigor through time",
+               "Oak seedling abundance",
+               "Oak share of seedlings"),
+  Answer = c(paste0("Mean ", round(g("Live basal area"), 1), " m2/ha (median ",
+                    round(g("Live basal area", "median"), 1), "), range 0-",
+                    round(g("Live basal area", "max"), 0)),
+             paste0(pct(g("Oak share of live basal area")), " of basal area but only ",
+                    pct(g("Oak share of live stems")), " of stems"),
+             paste0(pct(g("Oak stems with vigor >= 2"), 1), " of oaks rated 2 or 3; ",
+                    "no detectable difference between units"),
+             "Apparent improvement, but not separable from a change in observers",
+             paste0("Rose from ", seedyr$oak_c1_total[1], " to ", seedyr$oak_c1_total[2],
+                    " to ", seedyr$oak_c1_total[3], "; holds on repeated plots"),
+             paste0("Rose from ", pct(seedyr$prop_oak_pooled[1], 1), " to ",
+                    pct(seedyr$prop_oak_pooled[3], 0), " of Class 1 seedlings")),
+  Confidence = c("High", "High", "Moderate", "**Inconclusive**", "Moderate", "Moderate"))
+kable(v, row.names = FALSE)
+```
+
+## Decisions we need from the field team
+
+1. **Plot A-133 versus AZ-133.** A-133 has stems recorded in both 2022 and 2025, which the rotating
+   design should not allow. The Plot List note on AZ-133 reads *"stake says A-133; might've done
+   wrong plot."* One of those two visits probably surveyed a different plot. Both are currently
+   retained and flagged.
+2. **Plot KK-116, 2026.** All 29 stems have canopy-position codes (I, S) in the Vigor Rating column.
+   Vigor is currently set to missing for that plot; the ratings may be recoverable from the paper
+   sheets.
+3. **2023 Class 2 and 3 seedlings.** Were the larger size classes actually recorded that year?
+4. **Species codes PESE and CESA** (1 stem each) are not recognized. PESE may be a typo for PRSE.
+
+## Recommendations for the protocol
+
+1. **Calibrate vigor rating across crews.** This is the highest-value change available. A short
+   annual calibration -- all crew leads rate the same 15-20 trees and compare -- would make vigor
+   comparable between years and would make the 2018 comparison interpretable. As it stands, vigor is
+   the one measure in this dataset that cannot be compared across time.
+2. **Record a search area for the seedling layer.** The protocol does not state one, so seedling
+   counts cannot be converted to densities per hectare or compared with other studies.
+3. **Fix the survey window.** Sampling seedlings in July one year and October the next makes real
+   change hard to distinguish from phenology. Pick a window and hold it.
+4. **Keep some plots in every year's rotation.** A small permanent panel (even 10-15 plots visited
+   annually) would give a within-plot time series and resolve exactly the ambiguities that limit
+   this report.
+5. **Add sheet validation.** Dropdown lists for species code, canopy position, and vigor would
+   prevent most of the errors in the appendix, including the column-shift at KK-116.
+
+# Appendix: data quality
+
+`r nrow(flags)` items were flagged during cleaning. Nothing was silently dropped; the full log with
+plot and tag numbers is in `data/processed/qaqc_flags.csv`.
+
+```{r flag-table}
+ft <- as.data.frame(table(Dataset = flags$dataset, Issue = flags$issue))
+ft <- ft[ft$Freq > 0, ]
+act <- tapply(flags$action, paste(flags$dataset, flags$issue), function(x) paste(unique(x), collapse = "; "))
+ft$Action <- act[paste(ft$Dataset, ft$Issue)]
+ft <- ft[order(ft$Dataset, -ft$Freq), c("Dataset", "Issue", "Freq", "Action")]
+names(ft)[3] <- "Records"
+kable(ft, row.names = FALSE, caption = "Every issue found and what was done about it.")
+```
+
+```{r counts}
+cnt <- data.frame(
+  Step = c("Tree survey rows in the sheet", "Rows with a survey date",
+           "Analysis-ready stems", "Plots surveyed", "Plots excluded (could not be located)",
+           "Seedling rows in the three tabs", "Analysis-ready seedling records",
+           "Seedling plot-years"),
+  Count = c(1389, 1332, sum(ps$stems_live + ps$stems_snag), nrow(ps), 2,
+            1065, nrow(rd("seedlings_clean.csv")), sum(seedyr$plots)))
+kable(cnt, row.names = FALSE, caption = "Row counts from raw sheet to analysis.")
+```
+
+## Model output
+
+```{r model-table}
+mm <- rbind(mods, smods)
+mm$estimate <- signif(mm$estimate, 4)
+mm$se <- signif(mm$se, 3); mm$statistic <- signif(mm$statistic, 3); mm$p_value <- signif(mm$p_value, 3)
+# Descriptive rows have no standard error or p-value; an empty cell reads better than "NA"
+for (cc in c("estimate", "se", "statistic", "p_value")) {
+  mm[[cc]] <- ifelse(is.na(mm[[cc]]), "", format(mm[[cc]], trim = TRUE))
+}
+kable(mm, row.names = FALSE, caption = "All fitted models and tests. Also in data/processed/model_summaries*.csv.")
+```
+
+## Reproducing this report
+
+```
+Rscript scripts/0_data_download.R      # pull and cache both Google Sheets
+Rscript scripts/1_qaqc_clean.R         # clean, log every correction
+Rscript scripts/2_species_crosswalk.R  # link 2018 six-letter codes to volunteer four-letter codes
+Rscript scripts/3_plot_summaries.R     # plot-level metrics and summary statistics
+Rscript scripts/3b_figures_basalarea.R # figures 1-8
+Rscript scripts/4_vigor_analysis.R     # figures 9-13, vigor models
+Rscript scripts/5_seedling_analysis.R  # figures 14-18, seedling models
+Rscript scripts/7_render_report.R      # knits this report
+```
+
+Run from the project root. Script 0 needs a Google account with access to both sheets; everything
+after it works offline from the dated snapshots in `data/raw_gsheet/`. Use
+`scripts/7_render_report.R` rather than calling `rmarkdown::render` directly -- it sets the working
+directory and pandoc path that the relative figure paths depend on.
